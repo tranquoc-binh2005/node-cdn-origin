@@ -1,0 +1,46 @@
+# Source code (đã được build)
+src/
+examples/
+
+# Development files
+rollup.config.js
+.eslintrc*
+.prettierrc*
+.vscode/
+.idea/
+
+# Logs và data
+logs/
+data/
+*.log
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Git files
+.git/
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.js
+*.spec.js
+
+# Documentation (giữ lại README.md, USAGE.md, LICENSE)
+docs/
+*.md
+!README.md
+!USAGE.md
+!LICENSE

@@ -1,13 +1,67 @@
 {
-  "name": "node-cdn-origin",
+  "name": "@ateo/cdn-origin",
+  "version": "1.0.0",
+  "description": "A powerful CDN image uploader with automatic quality compression and WebP conversion",
   "type": "module",
-  "private": false,
-  "scripts": {
-    "start": "node server.js"
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
   },
+  "files": [
+    "dist",
+    "README.md",
+    "USAGE.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "start": "node server.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "cdn",
+    "image",
+    "upload",
+    "compression",
+    "webp",
+    "sharp",
+    "express",
+    "multer",
+    "image-processing",
+    "file-upload",
+    "image-optimization"
+  ],
+  "author": "Ateo <binhtranquoc2005@gmail.com>",
+  "license": "MIT",
   "dependencies": {
     "express": "^4.19.2",
     "multer": "^1.4.5-lts.1",
     "sharp": "^0.34.3"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "rollup": "^4.0.0",
+    "@rollup/plugin-terser": "^0.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ateo/cdn-origin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ateo/cdn-origin/issues"
+  },
+  "homepage": "https://github.com/ateo/cdn-origin#readme",
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/ateo"
   }
 }
