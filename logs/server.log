@@ -1,0 +1,12 @@
+[2025-08-29T09:41:54.675Z] [INFO] Image upload server running on port 3000
+[2025-08-29T09:41:54.681Z] [INFO] Log file: logs/server.log
+[2025-08-29T09:41:54.682Z] [INFO] Upload directory: /app/data
+[2025-08-29T09:41:54.683Z] [INFO] Quality directory: /app/data/storage/quality
+[2025-08-29T09:41:54.684Z] [INFO] Low directory: /app/data/storage/low
+[2025-08-29T09:41:54.684Z] [INFO] APP_URL: http://localhost:3000
+[2025-08-29T09:43:03.928Z] [INFO] Image upload server running on port 3000
+[2025-08-29T09:43:03.929Z] [INFO] Log file: logs/server.log
+[2025-08-29T09:43:03.929Z] [INFO] Upload directory: /app/data
+[2025-08-29T09:43:03.929Z] [INFO] Quality directory: /app/data/storage/quality
+[2025-08-29T09:43:03.929Z] [INFO] Low directory: /app/data/storage/low
+[2025-08-29T09:43:03.929Z] [INFO] APP_URL: http://localhost:3000
