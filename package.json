@@ -1,6 +1,6 @@
 {
   "name": "@ateo25/cdn-origin",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A powerful CDN image uploader with automatic quality compression and WebP conversion",
   "type": "module",
   "main": "dist/index.js",
