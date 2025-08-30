@@ -5,14 +5,30 @@ import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 
+function normalizeBaseUrl(base, port) {
+    if (!base) return `http://127.0.0.1:${port}`;
+    if (!/^https?:\/\//i.test(base)) base = `http://${base}`;
+    try {
+        const u = new URL(base);
+        if (!u.port) u.port = String(port);
+        return u.origin; // chuẩn hóa: protocol + host + port (nếu có)
+    } catch {
+        // Fallback đơn giản nếu URL constructor fail
+        return base.includes(':') ? base : `${base}:${port}`;
+    }
+}
+
 export class CDNUploader {
     constructor(options = {}) {
         this.uploadDir = options.uploadDir || './data';
-        this.port = options.port || 6868;
-        this.appUrl = options.appUrl || `http://localhost:${this.port}`;
+        this.port = options.port || 6868; // default port
+        this.appUrl = options.appUrl 
+            || process.env.APP_URL 
+            || `http://161.248.146.206:${this.port}`;
+
         this.maxFileSize = options.maxFileSize || 50 * 1024 * 1024; // 50MB
-        this.quality = options.quality || 50; // WebP quality
-        
+        this.quality = options.quality || 50;
+
         this.setupDirectories();
         this.setupMiddleware();
         this.setupRoutes();
@@ -61,7 +77,7 @@ export class CDNUploader {
 
     // Main upload method - đơn giản và dễ sử dụng
     async upload(file, options = {}) {
-        // Nếu file là Buffer, tạo object file
+        // Buffer → file object
         if (Buffer.isBuffer(file)) {
             file = {
                 buffer: file,
@@ -71,7 +87,7 @@ export class CDNUploader {
             };
         }
 
-        // Nếu file là string path, đọc file
+        // String path → đọc file
         if (typeof file === 'string') {
             const buffer = fs.readFileSync(file);
             file = {
@@ -82,7 +98,7 @@ export class CDNUploader {
             };
         }
 
-        // Validate file
+        // Validate
         if (!file || !file.buffer) {
             throw new Error('File is required');
         }
@@ -91,15 +107,13 @@ export class CDNUploader {
             throw new Error(`File size too large. Maximum allowed: ${this.maxFileSize / (1024 * 1024)}MB`);
         }
 
-        // Process image
+        // Process
         return await this.processImage(file, options.prefix || '');
     }
 
     // Upload multiple files
     async uploadMultiple(files, options = {}) {
-        if (!Array.isArray(files)) {
-            files = [files];
-        }
+        if (!Array.isArray(files)) files = [files];
 
         const results = [];
         for (const file of files) {
@@ -182,8 +196,8 @@ export class CDNUploader {
             .digest("hex")
             .slice(0, 16);
 
-        const keyPrefix = prefix.replace(/[^a-zA-Z0-9/_-]/g, "");
-        
+        const keyPrefix = (prefix || '').replace(/[^a-zA-Z0-9/_-]/g, ""); // giữ lại nếu sau này bạn gắn prefix vào path
+
         // Create time-based directory structure
         const now = new Date();
         const datePath = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
@@ -203,15 +217,16 @@ export class CDNUploader {
         // Save quality version (original)
         fs.writeFileSync(qualityPath, file.buffer);
         
-        // Process and save compressed version
+        // Save compressed version
         const lowBuffer = await sharp(file.buffer)
             .webp({ quality: this.quality })
             .toBuffer();
         fs.writeFileSync(lowPath, lowBuffer);
         
         // Generate URLs
-        const qualityUrl = `${this.appUrl}/files/storage/quality/${datePath}/${timePath}/${fileName}`;
-        const lowUrl = `${this.appUrl}/files/storage/low/${datePath}/${timePath}/${webpFileName}`;
+        const base = this.appUrl; // đã normalize (có protocol + port)
+        const qualityUrl = `${base}/files/storage/quality/${datePath}/${timePath}/${fileName}`;
+        const lowUrl = `${base}/files/storage/low/${datePath}/${timePath}/${webpFileName}`;
         
         return {
             original: { url: qualityUrl },
@@ -272,5 +287,4 @@ export const compressImage = async (buffer, quality = 50) => {
         .toBuffer();
 };
 
-// Default export
 export default CDNUploader;
