@@ -1,3 +1,4 @@
+// cdn-origin.js
 import express from 'express';
 import multer from 'multer';
 import crypto from 'node:crypto';
@@ -26,7 +27,7 @@ function guessMime(name) {
   }[ext] || 'application/octet-stream');
 }
 
-async function uploadRemote(file, { baseUrl, prefix, filename, mimetype } = {}) {
+async function uploadRemote(file, { baseUrl, prefix, filename, mimetype, headers } = {}) {
   // Ưu tiên options.baseUrl → ENV → default VPS
   baseUrl = baseUrl || process.env.CDN_REMOTE_URL || process.env.APP_URL || 'http://161.248.146.206:6868';
   if (!/^https?:\/\//i.test(baseUrl)) baseUrl = `http://${baseUrl}`;
@@ -52,7 +53,12 @@ async function uploadRemote(file, { baseUrl, prefix, filename, mimetype } = {}) 
   fd.append('file', new Blob([buffer], { type }), name);
   if (prefix) fd.append('prefix', String(prefix));
 
-  const res = await fetch(`${baseUrl}/upload`, { method: 'POST', body: fd });
+  const res = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    body: fd,
+    headers // có thể truyền { 'x-api-key': ... } nếu bạn bật auth trên VPS
+  });
+
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data?.success === false) {
     throw new Error(data?.error || `Upload failed with status ${res.status}`);
@@ -70,9 +76,22 @@ export class CDNUploader {
     this.maxFileSize = options.maxFileSize || 50 * 1024 * 1024;
     this.quality = options.quality || 50;
 
-    // Server stack (để ai gọi trực tiếp vào VPS)
+    // Server stack (dành cho VPS)
     this.app = express();
     this.app.use(express.json());
+
+    // (Tuỳ chọn) CORS nếu cần public từ frontend trực tiếp:
+    // const cors = (await import('cors')).default; this.app.use(cors({ origin: ['https://your-frontend.com'], credentials: false }));
+
+    // (Tuỳ chọn) API key bảo vệ:
+    // this.app.use((req, res, next) => {
+    //   const key = process.env.CDN_API_KEY;
+    //   if (!key) return next();
+    //   if (req.path === '/health') return next();
+    //   if (req.header('x-api-key') !== key) return res.status(401).json({ success:false, error:'Unauthorized' });
+    //   next();
+    // });
+
     const storage = multer.memoryStorage();
     this.uploadMw = multer({ storage, limits: { fileSize: this.maxFileSize } });
 
@@ -95,18 +114,8 @@ export class CDNUploader {
     }));
   }
 
-  // Chỉ 1 API public: upload()
-  // - Có options.baseUrl -> remote (VPS)
-  // - Không có -> local (xử lý & lưu tại chỗ)
-  async upload(file, options = {}) {
-    if (options.baseUrl || process.env.CDN_REMOTE_URL || process.env.APP_URL) {
-      return await uploadRemote(file, {
-        baseUrl: options.baseUrl, prefix: options.prefix,
-        filename: options.filename, mimetype: options.mimetype
-      });
-    }
-
-    // LOCAL MODE
+  // LOCAL MODE ONLY (khi options.local === true)
+  async uploadLocal(file, options = {}) {
     // Chuẩn hóa input
     if (Buffer.isBuffer(file)) {
       file = {
@@ -218,10 +227,25 @@ export class CDNUploader {
   getApp() { return this.app; }
 }
 
-// ===== Export API duy nhất để dùng phía client =====
+// ===== API dành cho ứng dụng (giống Cloudinary SDK) =====
+// MẶC ĐỊNH: REMOTE. Chỉ local khi options.local === true.
 export const upload = async (file, options = {}) => {
+  const wantLocal = options.local === true;
+
+  if (!wantLocal) {
+    // Remote upload tới VPS
+    return await uploadRemote(file, {
+      baseUrl: options.baseUrl,     // vd: http://161.248.146.206:6868
+      prefix: options.prefix,
+      filename: options.filename,
+      mimetype: options.mimetype,
+      headers: options.headers      // vd: { 'x-api-key': 'secret' }
+    });
+  }
+
+  // Local mode (dev/test offline)
   const uploader = new CDNUploader(options);
-  return await uploader.upload(file, options);
+  return await uploader.uploadLocal(file, options);
 };
 
 export default CDNUploader;
